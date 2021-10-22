@@ -190,6 +190,8 @@ public class MultiRequestBodyArgumentResolver implements HandlerMethodArgumentRe
                 } else if (parameterType == Byte.class) {
                     return number.byteValue();
                 }
+            } else if (parameterType == String.class) {
+                return value;
             } else if (parameterType == Boolean.class) {
                 return value.toString();
             } else if (parameterType == Character.class) {
