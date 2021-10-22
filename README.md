@@ -6,7 +6,7 @@ MultiRequestBody 是为了解决使用 @RequestBody 时，必须定义 Dto （�
 
 #### 1.maven 引入jar包
 
-**注意：** RequestBodyParam需要Java 8或更高版本。
+**注意：** MultiRequestBody需要Java 8或更高版本。
 
 如果您的应用程序是在maven中构建的，只需在pom.xml中添加以下代码即可。
 
@@ -69,7 +69,7 @@ public class TestController {
 
 ## II.进阶使用
 
-### 1.MultiRequestBody 标签
+### MultiRequestBody 标签
 
 @@MultiRequestBody(value="name",required=false) 提供额外的三个标签
 
@@ -78,42 +78,3 @@ public class TestController {
 value|别名
 name|同value，别名
 required|是否必须要 body param 参数。默认为 true ，参数为空时抛出异常；如果允许 body param 为空，请设置为 false
-
-
-### 2.MultiReadRequestBean
-
-通过继承 MultiReadRequestBean 自定义 @RequestBodyParam 的拦截规则
-
-2.0.3.RELEASE 以前需要添加 MultiReadRequestBean 来支持 PUT，现在DefaultMultiReadRequestBean 默认支持 POST 和 PUT，并且特殊情况下可以自行通过定义 MultiReadRequestBean filter
-
-```
-@Component
-@EnableRequestBodyParam
-public class RequestBodyParamConfigurer {
-
-    /**
-     * Customize MultiReadHttpServletRequest
-     * <p>Use default DefaultMultiReadRequestBean when don't has Customize MultiReadRequestBean
-     *
-     * 自定义 MultiReadHttpServletRequest 的使用条件
-     * <p>没有定义 MultiReadRequestBean 时，会使用默认的 DefaultMultiReadRequestBean 条件
-     *
-     * @see cn.kknotes.open.bean.DefaultMultiReadRequestBean
-     * @param request
-     * @return
-     */
-    @Bean
-    public MultiReadRequestBean testMultiReadRequestBean(ServletRequest request) {
-        return new MultiReadRequestBean() {
-            @Override
-            public boolean filter(ServletRequest request) {
-                // Definition rule
-                // 自定义条件
-                return true;
-            }
-        };
-    }
-
-}
-```
-[demo](https://github.com/LambdaExpression/RequestBodyParam/blob/master/demo/spring-boot-demo/src/main/java/com/github/lambdaexpression/demo/config/RequestBodyParamConfigurer.java)

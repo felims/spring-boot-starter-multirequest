@@ -89,6 +89,8 @@ public class MultiRequestBodyArgumentResolver implements HandlerMethodArgumentRe
         mavContainer.addAttribute(BindingResult.MODEL_KEY_PREFIX + name, param);
         if (param instanceof Map || param instanceof List) {
             return JSON.parseObject(param.toString(), parameter.getParameterType());
+        } else if (isDto(parameter.getParameterType())) {
+            return parseBasicTypeWrapper(parameter, param);
         } else {
             return param;
         }
@@ -115,7 +117,6 @@ public class MultiRequestBodyArgumentResolver implements HandlerMethodArgumentRe
         return parameter;
     }
 
-
     /**
      * 检查参数
      *
@@ -126,26 +127,38 @@ public class MultiRequestBodyArgumentResolver implements HandlerMethodArgumentRe
      * @throws MethodArgumentNotValidException
      */
     private void check(MethodParameter parameter, Object param, String name, MultiRequestBody multiRequestBody) throws Exception {
+        // 如果value是空，并且注解为必填，抛出Valid异常
         if (Objects.isNull(param) && multiRequestBody.required()) {
             throw new MethodArgumentNotValidException(parameter, name + " is Null ");
         }
+        // 如果value是空，但是注解为非必填，通过校验
         if (Objects.isNull(param)) {
             return;
         }
+        // 如果value类型与方法入参类型一致，通过校验
         if (Objects.equals(param.getClass(), parameter.getParameterType())) {
             return;
         }
+        // 如果value类型与方法入参类型不一致，但入参类型是基本包装类型，通过校验
+        if (!Objects.equals(param.getClass(), parameter.getParameterType()) && isDto(parameter.getParameterType())) {
+            return;
+        }
+        // value类型json数组对象，并且方法入参是数组，通过校验
         if (Objects.equals(param.getClass(), JSONArray.class) && parameter.getParameterType().isArray()) {
             return;
         }
-        if (Objects.equals(param.getClass(), JSONObject.class) && isDto(parameter.getParameterType())) {
+        // value类型json对象，并且方法入参不是基本类型，通过校验
+        if (Objects.equals(param.getClass(), JSONObject.class) && !isDto(parameter.getParameterType())) {
             return;
         }
         throw new MethodArgumentNotValidException(parameter, name + " argument type mismatch ");
     }
 
+    /**
+     * 检查是否基本包装类型
+     */
     private boolean isDto(Class<?> classz) {
-        return !(Objects.equals(classz, Integer.class)
+        return (Objects.equals(classz, Integer.class)
                 || Objects.equals(classz, Float.class)
                 || Objects.equals(classz, Double.class)
                 || Objects.equals(classz, Byte.class)
@@ -154,6 +167,38 @@ public class MultiRequestBodyArgumentResolver implements HandlerMethodArgumentRe
                 || Objects.equals(classz, Short.class)
                 || Objects.equals(classz, Long.class)
                 || Objects.equals(classz, String.class));
+    }
+
+    /**
+     * 基本类型包装类解析
+     */
+    private Object parseBasicTypeWrapper(MethodParameter parameter, Object value) throws Exception {
+        try {
+            Class<?> parameterType = parameter.getParameterType();
+            if (Number.class.isAssignableFrom(parameterType)) {
+                Number number = (Number) value;
+                if (parameterType == Integer.class) {
+                    return number.intValue();
+                } else if (parameterType == Short.class) {
+                    return number.shortValue();
+                } else if (parameterType == Long.class) {
+                    return number.longValue();
+                } else if (parameterType == Float.class) {
+                    return number.floatValue();
+                } else if (parameterType == Double.class) {
+                    return number.doubleValue();
+                } else if (parameterType == Byte.class) {
+                    return number.byteValue();
+                }
+            } else if (parameterType == Boolean.class) {
+                return value.toString();
+            } else if (parameterType == Character.class) {
+                return value.toString().charAt(0);
+            }
+            return null;
+        } catch (Exception e) {
+            throw new MethodArgumentNotValidException(parameter, "parseBasicTypeWrapper: " + value + " argument type mismatch ");
+        }
     }
 
     /**
